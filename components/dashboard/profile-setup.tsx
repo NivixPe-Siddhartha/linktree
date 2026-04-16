@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { User } from '@supabase/supabase-js'
+import { ImageUpload } from './image-upload'
 
 interface ProfileSetupProps {
   user: User
@@ -18,6 +19,7 @@ export function ProfileSetup({ user }: ProfileSetupProps) {
   const [username, setUsername] = useState(user.user_metadata?.username || '')
   const [displayName, setDisplayName] = useState('')
   const [bio, setBio] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -61,6 +63,7 @@ export function ProfileSetup({ user }: ProfileSetupProps) {
         username: username.toLowerCase(),
         display_name: displayName || null,
         bio: bio || null,
+        avatar_url: avatarUrl || null,
         theme: 'default',
       })
 
@@ -107,6 +110,14 @@ export function ProfileSetup({ user }: ProfileSetupProps) {
                 placeholder="John Doe"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Profile Picture</Label>
+              <ImageUpload 
+                value={avatarUrl}
+                onChange={(url) => setAvatarUrl(url)}
+                onRemove={() => setAvatarUrl('')}
               />
             </div>
             <div className="space-y-2">

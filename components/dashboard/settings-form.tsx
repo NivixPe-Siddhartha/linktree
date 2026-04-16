@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { Profile, Theme } from '@/lib/types'
 import { THEMES } from '@/lib/types'
 import { Check } from 'lucide-react'
+import { ImageUpload } from './image-upload'
 
 interface SettingsFormProps {
   profile: Profile
@@ -97,13 +98,11 @@ export function SettingsForm({ profile }: SettingsFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="avatarUrl">Avatar URL</Label>
-            <Input
-              id="avatarUrl"
-              type="url"
-              placeholder="https://example.com/avatar.jpg"
+            <Label>Profile Picture</Label>
+            <ImageUpload 
               value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
+              onChange={(url) => setAvatarUrl(url)}
+              onRemove={() => setAvatarUrl('')}
             />
           </div>
         </CardContent>

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, GripVertical, Pencil, Trash2, ExternalLink, BarChart2 } from 'lucide-react'
 import type { Link } from '@/lib/types'
 
@@ -23,6 +24,7 @@ export function LinkManager({ initialLinks, userId }: LinkManagerProps) {
   const [editingLink, setEditingLink] = useState<Link | null>(null)
   const [newTitle, setNewTitle] = useState('')
   const [newUrl, setNewUrl] = useState('')
+  const [linkType, setLinkType] = useState<'url' | 'email'>('url')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
@@ -34,8 +36,12 @@ export function LinkManager({ initialLinks, userId }: LinkManagerProps) {
     const position = links.length > 0 ? Math.max(...links.map(l => l.position)) + 1 : 0
 
     let url = newUrl
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url
+    if (linkType === 'email') {
+      url = url.startsWith('mailto:') ? url : `mailto:${url}`
+    } else {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url
+      }
     }
 
     const { data, error } = await supabase
@@ -44,6 +50,7 @@ export function LinkManager({ initialLinks, userId }: LinkManagerProps) {
         user_id: userId,
         title: newTitle,
         url: url,
+        icon: linkType === 'email' ? 'mail' : null,
         position: position,
         is_active: true,
       })
@@ -54,6 +61,7 @@ export function LinkManager({ initialLinks, userId }: LinkManagerProps) {
       setLinks([...links, data])
       setNewTitle('')
       setNewUrl('')
+      setLinkType('url')
       setIsAddOpen(false)
     }
 
@@ -66,8 +74,12 @@ export function LinkManager({ initialLinks, userId }: LinkManagerProps) {
 
     const supabase = createClient()
     let url = newUrl
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url
+    if (linkType === 'email') {
+      url = url.startsWith('mailto:') ? url : `mailto:${url}`
+    } else {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url
+      }
     }
 
     const { error } = await supabase
@@ -116,12 +128,21 @@ export function LinkManager({ initialLinks, userId }: LinkManagerProps) {
   const openEditDialog = (link: Link) => {
     setEditingLink(link)
     setNewTitle(link.title)
-    setNewUrl(link.url)
+    if (link.url.startsWith('mailto:')) {
+      setLinkType('email')
+      setNewUrl(link.url.replace('mailto:', ''))
+    } else {
+      setLinkType('url')
+      setNewUrl(link.url)
+    }
   }
 
   return (
     <div className="space-y-4">
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      <Dialog open={isAddOpen} onOpenChange={(open) => {
+        setIsAddOpen(open)
+        if (!open) setLinkType('url')
+      }}>
         <DialogTrigger asChild>
           <Button className="w-full" size="lg">
             <Plus className="mr-2 h-5 w-5" />
@@ -134,20 +155,27 @@ export function LinkManager({ initialLinks, userId }: LinkManagerProps) {
             <DialogDescription>Add a new link to your page</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <Tabs value={linkType} onValueChange={(v) => setLinkType(v as 'url' | 'email')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="url">Website URL</TabsTrigger>
+                <TabsTrigger value="email">Email Address</TabsTrigger>
+              </TabsList>
+            </Tabs>
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                placeholder="My Website"
+                placeholder={linkType === 'email' ? "Contact Email" : "My Website"}
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="url">URL</Label>
+              <Label htmlFor="url">{linkType === 'email' ? 'Email Address' : 'URL'}</Label>
               <Input
                 id="url"
-                placeholder="https://example.com"
+                type={linkType === 'email' ? 'email' : 'text'}
+                placeholder={linkType === 'email' ? "hello@example.com" : "https://example.com"}
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
               />
@@ -169,20 +197,27 @@ export function LinkManager({ initialLinks, userId }: LinkManagerProps) {
             <DialogDescription>Update your link details</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <Tabs value={linkType} onValueChange={(v) => setLinkType(v as 'url' | 'email')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="url">Website URL</TabsTrigger>
+                <TabsTrigger value="email">Email Address</TabsTrigger>
+              </TabsList>
+            </Tabs>
             <div className="space-y-2">
               <Label htmlFor="edit-title">Title</Label>
               <Input
                 id="edit-title"
-                placeholder="My Website"
+                placeholder={linkType === 'email' ? "Contact Email" : "My Website"}
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-url">URL</Label>
+              <Label htmlFor="edit-url">{linkType === 'email' ? 'Email Address' : 'URL'}</Label>
               <Input
                 id="edit-url"
-                placeholder="https://example.com"
+                type={linkType === 'email' ? 'email' : 'text'}
+                placeholder={linkType === 'email' ? "hello@example.com" : "https://example.com"}
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
               />
