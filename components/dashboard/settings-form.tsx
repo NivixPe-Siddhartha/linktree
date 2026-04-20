@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { Profile, Theme } from '@/lib/types'
-import { THEMES } from '@/lib/types'
 import { Check } from 'lucide-react'
 import { ImageUpload } from './image-upload'
 
@@ -19,23 +18,58 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({ profile }: SettingsFormProps) {
+  const [username, setUsername] = useState(profile.username)
   const [displayName, setDisplayName] = useState(profile.display_name || '')
   const [bio, setBio] = useState(profile.bio || '')
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '')
   const [theme, setTheme] = useState<Theme>(profile.theme as Theme || 'default')
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setSuccess(false)
+    setError('')
+
+    // --- Username validation ---
+    const trimmed = username.trim().toLowerCase()
+
+    if (trimmed.length < 3) {
+      setError('Username must be at least 3 characters.')
+      setIsLoading(false)
+      return
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+      setError('Username can only contain letters, numbers, and underscores.')
+      setIsLoading(false)
+      return
+    }
 
     const supabase = createClient()
-    const { error } = await supabase
+
+    // Check uniqueness only if username actually changed
+    if (trimmed !== profile.username) {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', trimmed)
+        .single()
+
+      if (existing) {
+        setError('That username is already taken. Please choose another.')
+        setIsLoading(false)
+        return
+      }
+    }
+
+    // --- Save all fields ---
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({
+        username: trimmed,
         display_name: displayName || null,
         bio: bio || null,
         avatar_url: avatarUrl || null,
@@ -43,7 +77,9 @@ export function SettingsForm({ profile }: SettingsFormProps) {
       })
       .eq('id', profile.id)
 
-    if (!error) {
+    if (updateError) {
+      setError('Failed to save changes. Please try again.')
+    } else {
       setSuccess(true)
       router.refresh()
       setTimeout(() => setSuccess(false), 3000)
@@ -72,11 +108,17 @@ export function SettingsForm({ profile }: SettingsFormProps) {
             <Label htmlFor="username">Username</Label>
             <Input
               id="username"
-              value={profile.username}
-              disabled
-              className="bg-slate-50"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value)
+                setError('')
+              }}
+              placeholder="your_username"
+              autoComplete="off"
             />
-            <p className="text-xs text-muted-foreground">Username cannot be changed</p>
+            <p className="text-xs text-muted-foreground">
+              Only letters, numbers, and underscores. Minimum 3 characters.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="displayName">Display Name</Label>
@@ -99,7 +141,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
           </div>
           <div className="space-y-2">
             <Label>Profile Picture</Label>
-            <ImageUpload 
+            <ImageUpload
               value={avatarUrl}
               onChange={(url) => setAvatarUrl(url)}
               onRemove={() => setAvatarUrl('')}
@@ -146,7 +188,10 @@ export function SettingsForm({ profile }: SettingsFormProps) {
         <Button type="submit" disabled={isLoading}>
           {isLoading ? 'Saving...' : 'Save Changes'}
         </Button>
-        {success && (
+        {error && (
+          <p className="text-sm text-red-500">{error}</p>
+        )}
+        {success && !error && (
           <p className="text-sm text-emerald-600">Changes saved successfully!</p>
         )}
       </div>
