@@ -33,10 +33,6 @@ export function ProfilePage({ profile, links, isDemo = false }: ProfilePageProps
             {profile.display_name || profile.username}
           </h1>
           
-          <p className={`mt-1 text-sm opacity-75 ${theme.text}`}>
-            @{profile.username}
-          </p>
-          
           {profile.bio && (
             <p className={`mt-3 max-w-sm text-sm opacity-75 ${theme.text}`}>
               {profile.bio}
